@@ -7,13 +7,13 @@ import (
 	"sync"
 )
 
-var pool *mockDriver
+var Pool *mockDriver
 
 func init() {
-	pool = &mockDriver{
+	Pool = &mockDriver{
 		conns: make(map[string]*sqlmock),
 	}
-	sql.Register("sqlmock", pool)
+	sql.Register("sqlmock", Pool)
 }
 
 type mockDriver struct {
@@ -40,13 +40,13 @@ func (d *mockDriver) Open(dsn string) (driver.Conn, error) {
 // Pings db so that all expectations could be
 // asserted.
 func New() (*sql.DB, Sqlmock, error) {
-	pool.Lock()
-	dsn := fmt.Sprintf("sqlmock_db_%d", pool.counter)
-	pool.counter++
+	Pool.Lock()
+	dsn := fmt.Sprintf("sqlmock_db_%d", Pool.counter)
+	Pool.counter++
 
-	smock := &sqlmock{dsn: dsn, drv: pool, ordered: true}
-	pool.conns[dsn] = smock
-	pool.Unlock()
+	smock := &sqlmock{dsn: dsn, drv: Pool, ordered: true}
+	Pool.conns[dsn] = smock
+	Pool.Unlock()
 
 	return smock.open()
 }
@@ -65,14 +65,14 @@ func New() (*sql.DB, Sqlmock, error) {
 // It is not recommended to use this method, unless you
 // really need it and there is no other way around.
 func NewWithDSN(dsn string) (*sql.DB, Sqlmock, error) {
-	pool.Lock()
-	if _, ok := pool.conns[dsn]; ok {
-		pool.Unlock()
+	Pool.Lock()
+	if _, ok := Pool.conns[dsn]; ok {
+		Pool.Unlock()
 		return nil, nil, fmt.Errorf("cannot create a new mock database with the same dsn: %s", dsn)
 	}
-	smock := &sqlmock{dsn: dsn, drv: pool, ordered: true}
-	pool.conns[dsn] = smock
-	pool.Unlock()
+	smock := &sqlmock{dsn: dsn, drv: Pool, ordered: true}
+	Pool.conns[dsn] = smock
+	Pool.Unlock()
 
 	return smock.open()
 }
